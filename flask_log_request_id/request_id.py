@@ -3,6 +3,7 @@ import uuid
 import logging
 import flask
 from flask import request, g, current_app, has_app_context, has_request_context
+from flask_log_request_id.ctx_fetcher import MultiContextRequestIdFetcher
 
 # Ensure ExecutedOutsideContext is properly defined
 class ExecutedOutsideContext(Exception):
@@ -62,24 +63,6 @@ class RequestID:
         if has_request_context():
             logger.info(f'{request.remote_addr} - - "{request.method} {request.path} {response.status_code}"')
         return response
-
-# Initialize the request ID fetcher
-class MultiContextRequestIdFetcher:
-    def __init__(self):
-        self.fetchers = []
-
-    def register_fetcher(self, fetcher):
-        self.fetchers.append(fetcher)
-
-    def get_request_id(self):
-        for fetcher in self.fetchers:
-            try:
-                request_id = fetcher()
-                if request_id:
-                    return request_id
-            except Exception as e:
-                logger.error(f"Error fetching request ID: {e}")
-        return None
 
 current_request_id = MultiContextRequestIdFetcher()
 current_request_id.register_fetcher(flask_ctx_get_request_id)

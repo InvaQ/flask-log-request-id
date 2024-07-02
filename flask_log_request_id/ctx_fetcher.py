@@ -5,31 +5,19 @@ class ExecutedOutsideContext(Exception):
     pass
 
 
-class MultiContextRequestIdFetcher(object):
-    """
-    A callable that can fetch request id from different context as Flask, Celery etc.
-    """
-
+class MultiContextRequestIdFetcher:
     def __init__(self):
-        """
-        Initialize
-        """
-        self.ctx_fetchers = []
+        self.fetchers = []
 
-    def __call__(self):
+    def register_fetcher(self, fetcher):
+        self.fetchers.append(fetcher)
 
-        for ctx_fetcher in self.ctx_fetchers:
+    def get_request_id(self):
+        for fetcher in self.fetchers:
             try:
-                return ctx_fetcher()
-            except ExecutedOutsideContext:
-                continue
+                request_id = fetcher()
+                if request_id:
+                    return request_id
+            except Exception as e:
+                print(f"Error fetching request ID: {e}")
         return None
-
-    def register_fetcher(self, ctx_fetcher):
-        """
-        Register another context-specialized fetcher
-        :param Callable ctx_fetcher: A callable that will return the id or raise ExecutedOutsideContext if it was
-         executed outside its context
-        """
-        if ctx_fetcher not in self.ctx_fetchers:
-            self.ctx_fetchers.append(ctx_fetcher)
